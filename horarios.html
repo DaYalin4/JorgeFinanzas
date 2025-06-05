@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horarios Disponibles</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="date-title">Horarios para </h1>
+        <div class="time-slots" id="time-slots"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const date = urlParams.get('date');
+            
+            if (date) {
+                document.getElementById('date-title').textContent += formatDisplayDate(date);
+                
+                // Horarios disponibles (simulados)
+                const availableTimes = [
+                    '09:00 AM', '10:30 AM', '12:00 PM', 
+                    '02:00 PM', '03:30 PM', '05:00 PM'
+                ];
+                
+                const timeSlots = document.getElementById('time-slots');
+                
+                availableTimes.forEach(time => {
+                    const slot = document.createElement('div');
+                    slot.classList.add('time-slot');
+                    slot.textContent = time;
+                    slot.addEventListener('click', function() {
+                        alert(`Cita agendada para el ${formatDisplayDate(date)} a las ${time}`);
+                        window.close();
+                    });
+                    timeSlots.appendChild(slot);
+                });
+            } else {
+                alert('No se especificó una fecha');
+                window.close();
+            }
+            
+            function formatDisplayDate(dateString) {
+                const parts = dateString.split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+        });
+    </script>
+    <style>
+        .time-slots {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .time-slot {
+            padding: 15px;
+            text-align: center;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .time-slot:hover {
+            background-color: #45a049;
+        }
+    </style>
+</body>
+</html>
