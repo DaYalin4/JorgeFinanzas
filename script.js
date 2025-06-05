@@ -81,7 +81,10 @@ async function renderCalendar(month, year) {
     elements.loading.style.display = 'none';
   }
 }
-
+function checkAvailability(dateStr, availableDates) {
+  // Verifica si la fecha existe en availableDates
+  return availableDates[dateStr] && availableDates[dateStr].length > 0;
+}
 // Obtener fechas disponibles desde Firestore
 async function fetchAvailableDates(month, year) {
   const monthFormatted = String(month + 1).padStart(2, '0');
