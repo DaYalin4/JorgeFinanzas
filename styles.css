@@ -130,19 +130,20 @@ h1 {
 }
 
 .day.available {
-  background-color: var(--primary-color);
-  color: var(--white);
-  font-weight: 600;
+  background-color: #2ecc71; /* Verde */
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.day.unavailable {
+  color: #95a5a6; /* Gris para días no disponibles */
+  cursor: not-allowed;
 }
 
 .day.available:hover {
   background-color: var(--primary-dark);
   transform: scale(1.05);
-}
-
-.day.unavailable {
-  color: var(--medium-gray);
-  cursor: not-allowed;
 }
 
 .day.today {
