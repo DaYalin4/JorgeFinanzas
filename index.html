@@ -3,18 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de Citas</title>
+    <title>Calendario de Citas - Jorge Finanzas</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Agenda tu cita</h1>
+        <header>
+            <h1>Agenda tu Cita</h1>
+            <p class="subtitle">Selecciona una fecha disponible</p>
+        </header>
+        
         <div class="calendar-container">
             <div class="calendar-header">
                 <button id="prev-month">&lt;</button>
                 <h2 id="current-month">Mes Año</h2>
                 <button id="next-month">&gt;</button>
             </div>
+            
             <div class="weekdays">
                 <div>Dom</div>
                 <div>Lun</div>
@@ -24,27 +32,174 @@
                 <div>Vie</div>
                 <div>Sáb</div>
             </div>
+            
             <div class="days" id="calendar-days"></div>
         </div>
+        
+        <div class="loading" id="loading">Cargando calendario...</div>
     </div>
-    <script src="script.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-<script>
-  // Tu configuración de Firebase
-  const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "TU_PROYECTO.firebaseapp.com",
-    projectId: "TU_PROYECTO",
-    storageBucket: "TU_PROYECTO.appspot.com",
-    messagingSenderId: "TU_SENDER_ID",
-    appId: "TU_APP_ID"
-  };
-  
-  // Inicializar Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
-<script src="script.js"></script>
+
+    <script>
+        // Configuración de Firebase (REEMPLAZA CON TUS DATOS)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD...", // Tu API Key
+            authDomain: "calendario-jorge-finanzas.firebaseapp.com",
+            projectId: "calendario-jorge-finanzas",
+            storageBucket: "calendario-jorge-finanzas.appspot.com",
+            messagingSenderId: "62034991024",
+            appId: "1:62034991024:web:4e0adad933ecc89e93e875"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos del DOM
+            const loadingElement = document.getElementById('loading');
+            const calendarDays = document.getElementById('calendar-days');
+            const currentMonthElement = document.getElementById('current-month');
+            const prevMonthButton = document.getElementById('prev-month');
+            const nextMonthButton = document.getElementById('next-month');
+            
+            // Fecha actual y control del calendario
+            let currentDate = new Date();
+            let currentMonth = currentDate.getMonth();
+            let currentYear = currentDate.getFullYear();
+            
+            // Nombres de meses en español
+            const monthNames = [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ];
+
+            // Función principal para renderizar el calendario
+            async function renderCalendar(month, year) {
+                loadingElement.style.display = 'block';
+                calendarDays.innerHTML = '';
+                
+                try {
+                    // Obtener fechas disponibles desde Firestore
+                    const availableDates = await getAvailableDates(year, month);
+                    
+                    // Configurar mes actual
+                    currentMonthElement.textContent = `${monthNames[month]} ${year}`;
+                    
+                    // Calcular días del mes
+                    const firstDay = new Date(year, month, 1);
+                    const lastDay = new Date(year, month + 1, 0);
+                    const daysInMonth = lastDay.getDate();
+                    const startingDay = firstDay.getDay();
+                    
+                    // Días vacíos para inicio del mes
+                    for (let i = 0; i < startingDay; i++) {
+                        calendarDays.appendChild(createDayElement('', 'empty'));
+                    }
+                    
+                    // Días del mes
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(year, month, day);
+                        const dateStr = formatDate(date);
+                        const isAvailable = availableDates[dateStr] && availableDates[dateStr].length > 0;
+                        const isToday = isSameDay(date, currentDate);
+                        
+                        const dayElement = createDayElement(
+                            day,
+                            isAvailable ? 'available' : 'unavailable',
+                            isToday ? 'today' : ''
+                        );
+                        
+                        if (isAvailable) {
+                            dayElement.addEventListener('click', () => {
+                                window.open(`horarios.html?date=${dateStr}`, '_blank');
+                            });
+                        }
+                        
+                        calendarDays.appendChild(dayElement);
+                    }
+                    
+                } catch (error) {
+                    console.error("Error al cargar el calendario:", error);
+                    calendarDays.innerHTML = '<div class="error">Error al cargar fechas</div>';
+                } finally {
+                    loadingElement.style.display = 'none';
+                }
+            }
+
+            // Helper functions
+            function createDayElement(content, ...classes) {
+                const div = document.createElement('div');
+                div.className = ['day', ...classes].join(' ');
+                div.textContent = content;
+                return div;
+            }
+
+            function formatDate(date) {
+                const d = new Date(date);
+                return [
+                    d.getFullYear(),
+                    String(d.getMonth() + 1).padStart(2, '0'),
+                    String(d.getDate()).padStart(2, '0')
+                ].join('-');
+            }
+
+            function isSameDay(date1, date2) {
+                return date1.getDate() === date2.getDate() &&
+                       date1.getMonth() === date2.getMonth() &&
+                       date1.getFullYear() === date2.getFullYear();
+            }
+
+            // Obtener fechas disponibles desde Firestore
+            async function getAvailableDates(year, month) {
+                const monthFormatted = String(month + 1).padStart(2, '0');
+                const startDate = `${year}-${monthFormatted}-01`;
+                const endDate = `${year}-${monthFormatted}-31`;
+                
+                try {
+                    const snapshot = await db.collection('citas')
+                        .where('date', '>=', new Date(startDate))
+                        .where('date', '<=', new Date(endDate))
+                        .where('available', '==', true)
+                        .get();
+                    
+                    const dates = {};
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const dateStr = data.date.toDate().toISOString().split('T')[0];
+                        
+                        if (!dates[dateStr]) dates[dateStr] = [];
+                        dates[dateStr].push(data.time);
+                    });
+                    
+                    return dates;
+                } catch (error) {
+                    console.error("Error al obtener citas:", error);
+                    return {};
+                }
+            }
+
+            // Event listeners para navegación
+            prevMonthButton.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar(currentMonth, currentYear);
+            });
+
+            nextMonthButton.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar(currentMonth, currentYear);
+            });
+
+            // Inicializar calendario
+            renderCalendar(currentMonth, currentYear);
+        });
+    </script>
 </body>
 </html>
