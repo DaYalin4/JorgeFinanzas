@@ -1,24 +1,56 @@
+// Configuración de Firebase (REEMPLAZA con tus datos)
+const firebaseConfig = {
+    apiKey: "AIzaSyB8bEzxsdi6gNLXeUrqYPHK1B1VsP5RoqM",
+    authDomain: "calendario-jorge-finanzas.firebaseapp.com",
+    projectId: "calendario-jorge-finanzas",
+    storageBucket: "calendario-jorge-finanzas.appspot.com",
+    messagingSenderId: "62034991024",
+    appId: "1:62034991024:web:4e0adad933ecc89e93e875"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 document.addEventListener('DOMContentLoaded', function() {
     let currentDate = new Date();
     let currentMonth = currentDate.getMonth();
     let currentYear = currentDate.getFullYear();
     
-    // Fechas con citas disponibles (simuladas)
-    const availableDates = [
-        '2023-11-15',
-        '2023-11-18',
-        '2023-11-20',
-        '2023-11-22',
-        '2023-11-25',
-        '2023-12-05',
-        '2023-12-10',
-        '2023-12-15'
-    ];
-    
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    function renderCalendar(month, year) {
+    async function getAvailableDates(year, month) {
+        const monthFormatted = String(month + 1).padStart(2, '0');
+        const startDate = `${year}-${monthFormatted}-01`;
+        const endDate = `${year}-${monthFormatted}-31`;
+        
+        try {
+            const snapshot = await db.collection('citas')
+                .where('date', '>=', new Date(startDate))
+                .where('date', '<=', new Date(endDate))
+                .where('available', '==', true)
+                .get();
+            
+            const dates = {};
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const dateStr = data.date.toDate().toISOString().split('T')[0];
+                
+                if (!dates[dateStr]) {
+                    dates[dateStr] = [];
+                }
+                dates[dateStr].push(data.time);
+            });
+            
+            return dates;
+        } catch (error) {
+            console.error("Error obteniendo citas: ", error);
+            return {};
+        }
+    }
+    
+    async function renderCalendar(month, year) {
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         const daysInMonth = lastDay.getDate();
@@ -30,17 +62,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const calendarDays = document.getElementById('calendar-days');
         calendarDays.innerHTML = '';
         
-        // Espacios vacíos para días del mes anterior
+        // Obtener fechas disponibles desde Firestore
+        const availableDates = await getAvailableDates(year, month);
+        
+        // Días vacíos para el inicio del mes
         for (let i = 0; i < startingDay; i++) {
             const emptyDay = document.createElement('div');
             emptyDay.classList.add('day', 'empty');
             calendarDays.appendChild(emptyDay);
         }
         
-        // Días del mes actual
+        // Días del mes
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(year, month, day);
-            const dateString = formatDate(date);
+            const dateStr = formatDate(date);
             const dayElement = document.createElement('div');
             dayElement.classList.add('day');
             dayElement.textContent = day;
@@ -53,10 +88,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Verificar disponibilidad
-            if (availableDates.includes(dateString)) {
+            if (availableDates[dateStr] && availableDates[dateStr].length > 0) {
                 dayElement.classList.add('available');
                 dayElement.addEventListener('click', function() {
-                    window.open(`horarios.html?date=${dateString}`, '_blank');
+                    window.open(`horarios.html?date=${dateStr}`, '_blank');
                 });
             } else {
                 dayElement.classList.add('unavailable');
